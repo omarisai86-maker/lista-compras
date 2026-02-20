@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -598,7 +599,7 @@
                                 <span class="item-category">${item.categoria}</span>
                             </div>
                             <div class="item-code">📋 ${item.codigo}</div>
-                            ${item.precio ? `<div class="item-price">$${item.precio}</div>` : ''}
+                            ${item.precio ? `<div class="item-price">$${item.precio.toFixed(2)}</div>` : ''}
                         </div>
                         <div>
                             <span class="item-qty">${item.cantidad}</span>
@@ -617,7 +618,7 @@
             renderizarListaCompras();
         };
 
-        // ========== CARGA DE EXCEL ==========
+        // ========== CARGA DE EXCEL - VERSIÓN ADAPTADA A TU ARCHIVO ==========
         document.getElementById('excelBtn').onclick = () => {
             document.getElementById('optionsPanel').classList.add('hidden');
             abrirModalExcel();
@@ -673,84 +674,85 @@
                 return;
             }
 
-            // Asumir que la primera fila son encabezados
-            const headers = rows[0];
-            console.log('Encabezados:', headers);
-
-            // Mapear columnas comunes
-            const colMap = {
-                codigo: headers.findIndex(h => 
-                    h && h.toString().toLowerCase().includes('codigo') || 
-                    h && h.toString().toLowerCase().includes('code') ||
-                    h && h.toString().toLowerCase().includes('barcode')
-                ),
-                nombre: headers.findIndex(h => 
-                    h && h.toString().toLowerCase().includes('nombre') || 
-                    h && h.toString().toLowerCase().includes('name') ||
-                    h && h.toString().toLowerCase().includes('producto')
-                ),
-                categoria: headers.findIndex(h => 
-                    h && h.toString().toLowerCase().includes('categoria') || 
-                    h && h.toString().toLowerCase().includes('category')
-                ),
-                precio: headers.findIndex(h => 
-                    h && h.toString().toLowerCase().includes('precio') || 
-                    h && h.toString().toLowerCase().includes('price')
-                )
-            };
-
+            console.log('Primeras 3 filas del Excel:', rows.slice(0, 3));
+            
             excelData = [];
 
-            for (let i = 1; i < rows.length; i++) {
+            for (let i = 0; i < rows.length; i++) {
                 const row = rows[i];
-                if (!row || row.length === 0) continue;
+                if (!row || row.length < 5) continue; // Necesitamos al menos 5 columnas
 
-                const producto = {};
+                // Extraer datos según las columnas de TU Excel
+                let codigo = row[0] ? String(row[0]).trim() : '';
+                let nombre = row[1] ? String(row[1]).trim() : '';
+                let precioTexto = row[3] ? String(row[3]).trim() : '';
+                let categoria = row[4] ? String(row[4]).trim() : 'General';
                 
-                if (colMap.codigo >= 0 && row[colMap.codigo]) {
-                    producto.codigo = row[colMap.codigo].toString().trim();
+                // LIMPIAR CÓDIGO: quitar .00 si existe
+                if (codigo.includes('.')) {
+                    codigo = codigo.split('.')[0];
                 }
-                if (colMap.nombre >= 0 && row[colMap.nombre]) {
-                    producto.nombre = row[colMap.nombre].toString().trim();
+                
+                // LIMPIAR PRECIO: quitar $ y convertir a número
+                let precio = 0;
+                if (precioTexto) {
+                    precioTexto = precioTexto.replace('$', '').replace(',', '').trim();
+                    precio = parseFloat(precioTexto) || 0;
                 }
-                if (colMap.categoria >= 0 && row[colMap.categoria]) {
-                    producto.categoria = row[colMap.categoria].toString().trim();
-                } else {
-                    producto.categoria = 'General';
+                
+                // LIMPIAR CATEGORÍA: reemplazar "- Sin Departamento -" por "General"
+                if (categoria === '- Sin Departamento -' || categoria === '') {
+                    categoria = 'General';
                 }
-                if (colMap.precio >= 0 && row[colMap.precio]) {
-                    producto.precio = parseFloat(row[colMap.precio]) || 0;
+                
+                // Si no hay nombre, intentar con otra columna
+                if (!nombre) {
+                    nombre = row[2] ? String(row[2]).trim() : '';
                 }
+                
+                // Solo agregar si tenemos código y nombre
+                if (codigo && nombre) {
+                    excelData.push({
+                        codigo: codigo,
+                        nombre: nombre,
+                        categoria: categoria,
+                        precio: precio
+                    });
+                } else if (codigo && !nombre) {
+                    console.log('⚠️ Producto sin nombre, código:', codigo);
+                }
+            }
 
-                if (producto.codigo && producto.nombre) {
-                    excelData.push(producto);
-                }
+            console.log(`✅ ${excelData.length} productos procesados correctamente`);
+            
+            if (excelData.length === 0) {
+                alert('No se encontraron productos válidos. Revisa que las columnas tengan código y nombre.');
+                return;
             }
 
             mostrarVistaPreviaExcel();
         }
 
         function mostrarVistaPreviaExcel() {
-            if (excelData.length === 0) {
-                alert('No se encontraron productos válidos en el archivo');
-                return;
-            }
-
             document.getElementById('fileInfo').innerHTML = 
-                `📊 ${excelData.length} productos encontrados`;
+                `📊 ${excelData.length} productos listos para importar`;
 
             let preview = '';
             excelData.slice(0, 10).forEach(p => {
                 preview += `
                     <div style="padding:8px; border-bottom:1px solid #eee;">
                         <strong>${p.nombre}</strong><br>
-                        <small>Código: ${p.codigo} | Categoría: ${p.categoria} ${p.precio ? '| $' + p.precio : ''}</small>
+                        <small>
+                            📋 Código: ${p.codigo} | 
+                            🏷️ ${p.categoria} | 
+                            ${p.precio ? '💰 $' + p.precio.toFixed(2) : ''}
+                        </small>
                     </div>
                 `;
             });
 
             if (excelData.length > 10) {
-                preview += `<div style="padding:8px; text-align:center; color:#666;">... y ${excelData.length - 10} más</div>`;
+                preview += `<div style="padding:8px; text-align:center; color:#666;">... y ${excelData.length - 10} productos más</div>`;
             }
 
             document.getElementById('excelData').innerHTML = preview;
@@ -760,6 +762,8 @@
 
         document.getElementById('saveExcelBtn').onclick = () => {
             let agregados = 0;
+            let actualizados = 0;
+            
             excelData.forEach(p => {
                 if (!productosBD[p.codigo]) {
                     productosBD[p.codigo] = {
@@ -769,12 +773,27 @@
                         precio: p.precio || 0
                     };
                     agregados++;
+                } else {
+                    // Si el producto ya existe, podemos actualizar sus datos
+                    productosBD[p.codigo].nombre = p.nombre;
+                    productosBD[p.codigo].categoria = p.categoria;
+                    productosBD[p.codigo].precio = p.precio || 0;
+                    actualizados++;
                 }
             });
             
             guardarBD();
             document.getElementById('excelModal').classList.add('hidden');
-            alert(`✅ ${agregados} productos nuevos agregados a la base de datos`);
+            
+            // Mostrar resumen
+            let mensaje = `✅ ${agregados} productos nuevos agregados.`;
+            if (actualizados > 0) {
+                mensaje += `\n📝 ${actualizados} productos actualizados.`;
+            }
+            alert(mensaje);
+            
+            // Mostrar algunos productos cargados en consola
+            console.log('Primeros productos cargados:', Object.values(productosBD).slice(0, 3));
         };
 
         // ========== ESCÁNER ==========
@@ -891,7 +910,7 @@
                 <p><span class="label">Producto:</span> <span class="value">${productoActual.nombre}</span></p>
                 <p><span class="label">Categoría:</span> <span class="value">${productoActual.categoria}</span></p>
                 <p><span class="label">Código:</span> <span class="value">${productoActual.codigo}</span></p>
-                ${productoActual.precio ? `<p><span class="label">Precio:</span> <span class="value">$${productoActual.precio}</span></p>` : ''}
+                ${productoActual.precio ? `<p><span class="label">Precio:</span> <span class="value">$${productoActual.precio.toFixed(2)}</span></p>` : ''}
             `;
             
             document.getElementById('cantidadInput').value = 1;
@@ -928,9 +947,33 @@
             document.getElementById('optionsPanel').classList.add('hidden');
         };
 
+        // ========== NUEVO PRODUCTO MANUAL ==========
+        document.getElementById('manualOption').onclick = () => {
+            document.getElementById('optionsPanel').classList.add('hidden');
+            alert('Función de producto manual disponible pronto');
+        };
+
         // ========== INICIALIZACIÓN ==========
         renderizarListaCompras();
         actualizarContadorProductos();
+
+        // Si hay productos de ejemplo, cargarlos
+        if (Object.keys(productosBD).length === 0) {
+            // Algunos ejemplos
+            productosBD['7501055306475'] = {
+                nombre: 'Leche Lala 1L',
+                categoria: 'Fríos',
+                codigo: '7501055306475',
+                precio: 23.50
+            };
+            productosBD['7501000311116'] = {
+                nombre: 'Coca-Cola 600ml',
+                categoria: 'Bebidas',
+                codigo: '7501000311116',
+                precio: 18.00
+            };
+            guardarBD();
+        }
     </script>
 </body>
 </html>
