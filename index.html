@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -669,70 +668,85 @@
         };
 
         function procesarExcel(rows) {
-            if (rows.length < 2) {
-                alert('El archivo no tiene datos suficientes');
-                return;
-            }
+    if (rows.length < 2) {
+        alert('El archivo no tiene datos suficientes');
+        return;
+    }
 
-            console.log('Primeras 3 filas del Excel:', rows.slice(0, 3));
-            
-            excelData = [];
+    // MOSTRAR DIAGNÓSTICO
+    console.log('PRIMERA FILA (raw):', rows[0]);
+    console.log('SEGUNDA FILA (raw):', rows[1]);
+    
+    // DIAGNÓSTICO VISUAL
+    let diagnostico = "Primeras 2 filas:\n";
+    diagnostico += "Fila 1: " + JSON.stringify(rows[0]) + "\n";
+    diagnostico += "Fila 2: " + JSON.stringify(rows[1]);
+    alert(diagnostico);
+    
+    excelData = [];
 
-            for (let i = 0; i < rows.length; i++) {
-                const row = rows[i];
-                if (!row || row.length < 5) continue; // Necesitamos al menos 5 columnas
-
-                // Extraer datos según las columnas de TU Excel
-                let codigo = row[0] ? String(row[0]).trim() : '';
-                let nombre = row[1] ? String(row[1]).trim() : '';
-                let precioTexto = row[3] ? String(row[3]).trim() : '';
-                let categoria = row[4] ? String(row[4]).trim() : 'General';
-                
-                // LIMPIAR CÓDIGO: quitar .00 si existe
-                if (codigo.includes('.')) {
-                    codigo = codigo.split('.')[0];
-                }
-                
-                // LIMPIAR PRECIO: quitar $ y convertir a número
-                let precio = 0;
-                if (precioTexto) {
-                    precioTexto = precioTexto.replace('$', '').replace(',', '').trim();
-                    precio = parseFloat(precioTexto) || 0;
-                }
-                
-                // LIMPIAR CATEGORÍA: reemplazar "- Sin Departamento -" por "General"
-                if (categoria === '- Sin Departamento -' || categoria === '') {
-                    categoria = 'General';
-                }
-                
-                // Si no hay nombre, intentar con otra columna
-                if (!nombre) {
-                    nombre = row[2] ? String(row[2]).trim() : '';
-                }
-                
-                // Solo agregar si tenemos código y nombre
-                if (codigo && nombre) {
-                    excelData.push({
-                        codigo: codigo,
-                        nombre: nombre,
-                        categoria: categoria,
-                        precio: precio
-                    });
-                } else if (codigo && !nombre) {
-                    console.log('⚠️ Producto sin nombre, código:', codigo);
-                }
-            }
-
-            console.log(`✅ ${excelData.length} productos procesados correctamente`);
-            
-            if (excelData.length === 0) {
-                alert('No se encontraron productos válidos. Revisa que las columnas tengan código y nombre.');
-                return;
-            }
-
-            mostrarVistaPreviaExcel();
+    // VERSIÓN FORZADA - IGNORA ENCABEZADOS, TOMA DATOS DIRECTAMENTE
+    // Empezamos desde la fila 0 (primera fila de datos)
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        
+        // Verificar que la fila tenga al menos 5 columnas
+        if (!row || row.length < 5) {
+            console.log(`Fila ${i} ignorada: muy pocas columnas`);
+            continue;
         }
+        
+        // EXTRAER DATOS - Columnas fijas:
+        // Col0: Código
+        // Col1: Nombre
+        // Col3: Precio
+        // Col4: Categoría
+        
+        let codigo = row[0] ? String(row[0]).trim() : '';
+        let nombre = row[1] ? String(row[1]).trim() : '';
+        let precioTexto = row[3] ? String(row[3]).trim() : '';
+        let categoria = row[4] ? String(row[4]).trim() : 'General';
+        
+        // Limpiar código
+        if (codigo.includes('.')) {
+            codigo = codigo.split('.')[0];
+        }
+        
+        // Limpiar precio
+        let precio = 0;
+        if (precioTexto) {
+            precioTexto = precioTexto.replace('$', '').replace(',', '').trim();
+            precio = parseFloat(precioTexto) || 0;
+        }
+        
+        // Limpiar categoría
+        if (categoria === '- Sin Departamento -' || categoria === '') {
+            categoria = 'General';
+        }
+        
+        // VALIDACIÓN ESTRICTA
+        if (codigo && nombre && codigo.length > 3) {
+            excelData.push({
+                codigo: codigo,
+                nombre: nombre,
+                categoria: categoria,
+                precio: precio
+            });
+            console.log(`✅ Producto ${i}: ${nombre} (${codigo})`);
+        } else {
+            console.log(`❌ Fila ${i} inválida:`, {codigo, nombre});
+        }
+    }
 
+    console.log(`📊 Total: ${excelData.length} productos válidos`);
+    
+    if (excelData.length === 0) {
+        alert('No se encontraron productos válidos. Revisa el diagnóstico en la consola.');
+        return;
+    }
+
+    mostrarVistaPreviaExcel();
+}
         function mostrarVistaPreviaExcel() {
             document.getElementById('fileInfo').innerHTML = 
                 `📊 ${excelData.length} productos listos para importar`;
