@@ -68,6 +68,38 @@
             font-size: 12px;
         }
 
+        /* Categorías */
+        .categoria-section {
+            margin-bottom: 20px;
+        }
+
+        .categoria-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 2px solid #1a73e8;
+            margin-bottom: 10px;
+        }
+
+        .categoria-titulo {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a73e8;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .categoria-total {
+            background: #e8f0fe;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            color: #1a73e8;
+            font-weight: 600;
+        }
+
         /* Lista de compras */
         #shoppingList {
             list-style: none;
@@ -79,6 +111,11 @@
             align-items: center;
             padding: 12px;
             border-bottom: 1px solid #eee;
+            transition: background 0.2s;
+        }
+
+        .shopping-item:hover {
+            background: #f8f9fa;
         }
 
         .shopping-item:last-child {
@@ -92,15 +129,7 @@
         .item-name {
             font-weight: 600;
             color: #333;
-        }
-
-        .item-category {
-            font-size: 12px;
-            color: #666;
-            margin-left: 8px;
-            background: #f0f0f0;
-            padding: 2px 8px;
-            border-radius: 12px;
+            font-size: 16px;
         }
 
         .item-code {
@@ -109,9 +138,20 @@
             margin-top: 4px;
         }
 
-        .item-price {
-            font-size: 12px;
+        .precios-container {
+            display: flex;
+            gap: 15px;
+            margin-top: 5px;
+            font-size: 13px;
+        }
+
+        .precio-venta {
             color: #28a745;
+            font-weight: 600;
+        }
+
+        .precio-compra {
+            color: #dc3545;
             font-weight: 600;
         }
 
@@ -122,6 +162,8 @@
             border-radius: 20px;
             font-size: 14px;
             font-weight: 500;
+            min-width: 45px;
+            text-align: center;
         }
 
         .btn-delete {
@@ -132,12 +174,54 @@
             padding: 6px 12px;
             margin-left: 10px;
             cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-delete:hover {
+            background: #c82333;
         }
 
         .empty-list {
             text-align: center;
             color: #999;
             padding: 30px !important;
+        }
+
+        /* Totales */
+        .totales-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .total-item {
+            text-align: center;
+            flex: 1;
+        }
+
+        .total-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .total-venta {
+            color: #28a745;
+            font-size: 18px;
+        }
+
+        .total-compra {
+            color: #dc3545;
+            font-size: 18px;
+        }
+
+        .total-ganancia {
+            color: #1a73e8;
+            font-size: 18px;
         }
 
         /* Botones flotantes */
@@ -161,6 +245,9 @@
             cursor: pointer;
             box-shadow: 0 4px 12px rgba(26,115,232,0.4);
             transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .fab:active {
@@ -450,9 +537,39 @@
             background: #f0f7ff;
         }
 
-        .search-result-item .price {
+        .search-result-item .precios {
+            text-align: right;
+        }
+
+        .search-result-item .precio-venta {
             color: #28a745;
             font-weight: 600;
+        }
+
+        .search-result-item .precio-compra {
+            color: #dc3545;
+            font-size: 12px;
+        }
+
+        .search-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .search-tab {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: #f1f3f4;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .search-tab.active {
+            background: #1a73e8;
+            color: white;
         }
 
         /* Excel upload */
@@ -504,7 +621,7 @@
             </div>
         </div>
 
-        <!-- Lista de compras actual -->
+        <!-- Lista de compras actual (agrupada por categorías) -->
         <div class="card">
             <div class="card-header">
                 <div class="card-title">
@@ -512,7 +629,23 @@
                 </div>
                 <span class="badge" id="itemCount">0</span>
             </div>
-            <ul id="shoppingList"></ul>
+            <div id="shoppingList"></div>
+            
+            <!-- Totales -->
+            <div id="totalesContainer" class="totales-container hidden">
+                <div class="total-item">
+                    <div class="total-label">💰 Venta</div>
+                    <div class="total-venta" id="totalVenta">$0.00</div>
+                </div>
+                <div class="total-item">
+                    <div class="total-label">📦 Compra</div>
+                    <div class="total-compra" id="totalCompra">$0.00</div>
+                </div>
+                <div class="total-item">
+                    <div class="total-label">📈 Ganancia</div>
+                    <div class="total-ganancia" id="totalGanancia">$0.00</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -549,8 +682,13 @@
         <div class="modal-content">
             <h3>🔍 Buscar producto</h3>
             
+            <div class="search-tabs">
+                <button class="search-tab active" id="tabNombre">Por nombre</button>
+                <button class="search-tab" id="tabCodigo">Por código</button>
+            </div>
+            
             <div class="search-box">
-                <input type="text" id="searchInput" placeholder="Escribe el nombre del producto...">
+                <input type="text" id="searchInput" placeholder="Escribe para buscar...">
             </div>
 
             <div id="searchResults" class="search-results"></div>
@@ -577,8 +715,13 @@
             </div>
 
             <div class="form-group">
-                <label>Precio</label>
-                <input type="number" id="nuevoPrecio" placeholder="0.00" step="0.01" min="0">
+                <label>Precio de compra (lo que pagas)</label>
+                <input type="number" id="nuevoPrecioCompra" placeholder="0.00" step="0.01" min="0">
+            </div>
+
+            <div class="form-group">
+                <label>Precio de venta (precio al público)</label>
+                <input type="number" id="nuevoPrecioVenta" placeholder="0.00" step="0.01" min="0">
             </div>
 
             <div class="form-group">
@@ -648,6 +791,7 @@
         let animationId = null;
         let productoActual = null;
         let excelData = [];
+        let modoBusqueda = 'nombre'; // 'nombre' o 'codigo'
 
         // Elementos DOM
         const video = document.getElementById('video');
@@ -657,6 +801,10 @@
         const itemCount = document.getElementById('itemCount');
         const productCount = document.getElementById('productCount');
         const dbInfo = document.getElementById('dbInfo');
+        const totalesContainer = document.getElementById('totalesContainer');
+        const totalVenta = document.getElementById('totalVenta');
+        const totalCompra = document.getElementById('totalCompra');
+        const totalGanancia = document.getElementById('totalGanancia');
 
         // ========== FUNCIONES DE PERSISTENCIA ==========
         function guardarBD() {
@@ -667,6 +815,7 @@
         function guardarLista() {
             localStorage.setItem('listaCompras', JSON.stringify(listaCompras));
             actualizarContadorLista();
+            renderizarListaCompras();
         }
 
         // ========== FUNCIONES DE INTERFAZ ==========
@@ -682,33 +831,109 @@
                 'No hay productos cargados';
         }
 
-        function renderizarListaCompras() {
+        function calcularTotales() {
             if (listaCompras.length === 0) {
-                shoppingList.innerHTML = '<li class="shopping-item empty-list">No hay productos en la lista</li>';
+                totalesContainer.classList.add('hidden');
                 return;
             }
 
-            let html = '';
-            listaCompras.forEach((item, index) => {
-                html += `
-                    <li class="shopping-item">
-                        <div class="item-info">
-                            <div>
-                                <span class="item-name">${item.nombre}</span>
-                                <span class="item-category">${item.categoria}</span>
-                            </div>
-                            <div class="item-code">📋 ${item.codigo}</div>
-                            ${item.precio ? `<div class="item-price">$${item.precio.toFixed(2)}</div>` : ''}
-                        </div>
-                        <div>
-                            <span class="item-qty">${item.cantidad}</span>
-                            <button class="btn-delete" onclick="eliminarDeLista(${index})">✖</button>
-                        </div>
-                    </li>
-                `;
+            let totalCompraNum = 0;
+            let totalVentaNum = 0;
+
+            listaCompras.forEach(item => {
+                totalCompraNum += (item.precioCompra || 0) * item.cantidad;
+                totalVentaNum += (item.precioVenta || 0) * item.cantidad;
             });
+
+            const ganancia = totalVentaNum - totalCompraNum;
+
+            totalVenta.textContent = `$${totalVentaNum.toFixed(2)}`;
+            totalCompra.textContent = `$${totalCompraNum.toFixed(2)}`;
+            totalGanancia.textContent = `$${ganancia.toFixed(2)}`;
+            
+            totalGanancia.style.color = ganancia >= 0 ? '#1a73e8' : '#dc3545';
+            
+            totalesContainer.classList.remove('hidden');
+        }
+
+        function renderizarListaCompras() {
+            if (listaCompras.length === 0) {
+                shoppingList.innerHTML = '<div class="empty-list">No hay productos en la lista</div>';
+                totalesContainer.classList.add('hidden');
+                return;
+            }
+
+            // Agrupar productos por categoría
+            const productosPorCategoria = {};
+            
+            listaCompras.forEach(item => {
+                const categoria = item.categoria || 'General';
+                if (!productosPorCategoria[categoria]) {
+                    productosPorCategoria[categoria] = [];
+                }
+                productosPorCategoria[categoria].push(item);
+            });
+
+            // Ordenar categorías alfabéticamente
+            const categoriasOrdenadas = Object.keys(productosPorCategoria).sort();
+
+            let html = '';
+
+            categoriasOrdenadas.forEach(categoria => {
+                const productos = productosPorCategoria[categoria];
+                
+                // Calcular total de la categoría
+                let totalCategoria = productos.reduce((sum, item) => {
+                    return sum + ((item.precioVenta || 0) * item.cantidad);
+                }, 0);
+
+                html += `
+                    <div class="categoria-section">
+                        <div class="categoria-header">
+                            <div class="categoria-titulo">
+                                <span>📁 ${categoria}</span>
+                            </div>
+                            <div class="categoria-total">
+                                $${totalCategoria.toFixed(2)}
+                            </div>
+                        </div>
+                        <ul class="shopping-list">
+                `;
+
+                productos.forEach((item, index) => {
+                    // Necesitamos encontrar el índice real en listaCompras para eliminar
+                    const realIndex = listaCompras.findIndex(p => 
+                        p.codigo === item.codigo && 
+                        p.nombre === item.nombre && 
+                        p.cantidad === item.cantidad
+                    );
+
+                    html += `
+                        <li class="shopping-item">
+                            <div class="item-info">
+                                <div>
+                                    <span class="item-name">${item.nombre}</span>
+                                </div>
+                                <div class="item-code">📋 ${item.codigo}</div>
+                                <div class="precios-container">
+                                    ${item.precioVenta ? `<span class="precio-venta">💰 Venta: $${item.precioVenta.toFixed(2)}</span>` : ''}
+                                    ${item.precioCompra ? `<span class="precio-compra">📦 Compra: $${item.precioCompra.toFixed(2)}</span>` : ''}
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center;">
+                                <span class="item-qty">${item.cantidad}</span>
+                                <button class="btn-delete" onclick="eliminarDeLista(${realIndex})">✖</button>
+                            </div>
+                        </li>
+                    `;
+                });
+
+                html += '</ul></div>';
+            });
+
             shoppingList.innerHTML = html;
             actualizarContadorLista();
+            calcularTotales();
         }
 
         window.eliminarDeLista = function(index) {
@@ -738,10 +963,9 @@
         function abrirBuscador() {
             const modal = document.getElementById('buscarModal');
             const searchInput = document.getElementById('searchInput');
-            const searchResults = document.getElementById('searchResults');
             
             searchInput.value = '';
-            searchResults.innerHTML = '';
+            document.getElementById('searchResults').innerHTML = '';
             modal.classList.remove('hidden');
             
             searchInput.focus();
@@ -749,6 +973,25 @@
 
         document.getElementById('closeBuscarBtn').onclick = () => {
             document.getElementById('buscarModal').classList.add('hidden');
+        };
+
+        // Tabs de búsqueda
+        document.getElementById('tabNombre').onclick = function() {
+            this.classList.add('active');
+            document.getElementById('tabCodigo').classList.remove('active');
+            modoBusqueda = 'nombre';
+            document.getElementById('searchInput').placeholder = 'Escribe el nombre del producto...';
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchResults').innerHTML = '';
+        };
+
+        document.getElementById('tabCodigo').onclick = function() {
+            this.classList.add('active');
+            document.getElementById('tabNombre').classList.remove('active');
+            modoBusqueda = 'codigo';
+            document.getElementById('searchInput').placeholder = 'Escribe o escanea el código...';
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchResults').innerHTML = '';
         };
 
         document.getElementById('searchInput').addEventListener('input', function(e) {
@@ -760,11 +1003,18 @@
                 return;
             }
             
-            // Buscar en productosBD
             const productos = Object.values(productosBD);
-            const encontrados = productos.filter(p => 
-                p.nombre.toLowerCase().includes(termino)
-            ).slice(0, 10); // Máximo 10 resultados
+            let encontrados = [];
+
+            if (modoBusqueda === 'nombre') {
+                encontrados = productos.filter(p => 
+                    p.nombre.toLowerCase().includes(termino)
+                ).slice(0, 10);
+            } else {
+                encontrados = productos.filter(p => 
+                    p.codigo.toLowerCase().includes(termino)
+                ).slice(0, 10);
+            }
             
             if (encontrados.length === 0) {
                 results.innerHTML = `
@@ -785,7 +1035,10 @@
                             <br>
                             <small>${p.categoria}</small>
                         </div>
-                        <div class="price">$${p.precio ? p.precio.toFixed(2) : '0.00'}</div>
+                        <div class="precios">
+                            <div class="precio-venta">💰 $${p.precioVenta ? p.precioVenta.toFixed(2) : '0.00'}</div>
+                            ${p.precioCompra ? `<div class="precio-compra">📦 $${p.precioCompra.toFixed(2)}</div>` : ''}
+                        </div>
                     </div>
                 `;
             });
@@ -817,7 +1070,8 @@
             // Limpiar campos
             document.getElementById('nuevoNombre').value = '';
             document.getElementById('nuevaCategoria').value = 'General';
-            document.getElementById('nuevoPrecio').value = '';
+            document.getElementById('nuevoPrecioCompra').value = '';
+            document.getElementById('nuevoPrecioVenta').value = '';
             document.getElementById('nuevoCodigo').value = '';
         };
 
@@ -825,7 +1079,8 @@
         document.getElementById('guardarNuevoBtn').onclick = () => {
             const nombre = document.getElementById('nuevoNombre').value.trim();
             const categoria = document.getElementById('nuevaCategoria').value.trim() || 'General';
-            const precio = parseFloat(document.getElementById('nuevoPrecio').value) || 0;
+            const precioCompra = parseFloat(document.getElementById('nuevoPrecioCompra').value) || 0;
+            const precioVenta = parseFloat(document.getElementById('nuevoPrecioVenta').value) || 0;
             let codigo = document.getElementById('nuevoCodigo').value.trim();
             
             if (!nombre) {
@@ -843,7 +1098,8 @@
                 nombre: nombre,
                 categoria: categoria,
                 codigo: codigo,
-                precio: precio
+                precioCompra: precioCompra,
+                precioVenta: precioVenta
             };
             guardarBD();
             
@@ -914,7 +1170,6 @@
             }
 
             console.log('Encabezados:', rows[0]);
-            console.log('Primer producto:', rows[1]);
             
             excelData = [];
 
@@ -959,11 +1214,9 @@
                         codigo: codigo,
                         nombre: nombre,
                         categoria: categoria,
-                        precio: precio
+                        precioVenta: precio,
+                        precioCompra: 0 // Por defecto, el usuario puede actualizar después
                     });
-                    console.log(`✅ Producto ${i}: ${nombre}`);
-                } else {
-                    console.log(`❌ Fila ${i} inválida:`, {codigo, nombre});
                 }
             }
 
@@ -989,7 +1242,7 @@
                         <small>
                             📋 Código: ${p.codigo} | 
                             🏷️ ${p.categoria} | 
-                            ${p.precio ? '💰 $' + p.precio.toFixed(2) : ''}
+                            💰 Venta: $${p.precioVenta.toFixed(2)}
                         </small>
                     </div>
                 `;
@@ -1014,14 +1267,15 @@
                         nombre: p.nombre,
                         categoria: p.categoria,
                         codigo: p.codigo,
-                        precio: p.precio || 0
+                        precioCompra: 0,
+                        precioVenta: p.precioVenta
                     };
                     agregados++;
                 } else {
                     // Si el producto ya existe, actualizar datos
                     productosBD[p.codigo].nombre = p.nombre;
                     productosBD[p.codigo].categoria = p.categoria;
-                    productosBD[p.codigo].precio = p.precio || 0;
+                    productosBD[p.codigo].precioVenta = p.precioVenta;
                     actualizados++;
                 }
             });
@@ -1142,7 +1396,8 @@
                             detenerScanner();
                             document.getElementById('nuevoNombre').value = '';
                             document.getElementById('nuevaCategoria').value = 'General';
-                            document.getElementById('nuevoPrecio').value = '';
+                            document.getElementById('nuevoPrecioCompra').value = '';
+                            document.getElementById('nuevoPrecioVenta').value = '';
                             document.getElementById('nuevoCodigo').value = codigo;
                             document.getElementById('nuevoProductoModal').classList.remove('hidden');
                         } else {
@@ -1162,7 +1417,8 @@
                 <p><span class="label">Producto:</span> <span class="value">${productoActual.nombre}</span></p>
                 <p><span class="label">Categoría:</span> <span class="value">${productoActual.categoria}</span></p>
                 <p><span class="label">Código:</span> <span class="value">${productoActual.codigo}</span></p>
-                ${productoActual.precio ? `<p><span class="label">Precio:</span> <span class="value">$${productoActual.precio.toFixed(2)}</span></p>` : ''}
+                ${productoActual.precioVenta ? `<p><span class="label">Precio venta:</span> <span class="value">$${productoActual.precioVenta.toFixed(2)}</span></p>` : ''}
+                ${productoActual.precioCompra ? `<p><span class="label">Precio compra:</span> <span class="value">$${productoActual.precioCompra.toFixed(2)}</span></p>` : ''}
             `;
             
             document.getElementById('cantidadInput').value = 1;
@@ -1177,7 +1433,8 @@
                 categoria: productoActual.categoria,
                 codigo: productoActual.codigo,
                 cantidad: cantidad,
-                precio: productoActual.precio || 0
+                precioCompra: productoActual.precioCompra || 0,
+                precioVenta: productoActual.precioVenta || 0
             });
             
             guardarLista();
@@ -1205,4 +1462,5 @@
     </script>
 </body>
 </html>
+
 
