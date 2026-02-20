@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -667,72 +667,62 @@
             reader.readAsArrayBuffer(file);
         };
 
-        function procesarExcel(rows) {
+       function procesarExcel(rows) {
     if (rows.length < 2) {
         alert('El archivo no tiene datos suficientes');
         return;
     }
 
-    // MOSTRAR DIAGNÓSTICO
-    console.log('PRIMERA FILA (raw):', rows[0]);
-    console.log('SEGUNDA FILA (raw):', rows[1]);
-    
-    // DIAGNÓSTICO VISUAL
-    let diagnostico = "Primeras 2 filas:\n";
-    diagnostico += "Fila 1: " + JSON.stringify(rows[0]) + "\n";
-    diagnostico += "Fila 2: " + JSON.stringify(rows[1]);
-    alert(diagnostico);
+    // Mostrar diagnóstico de las primeras filas
+    console.log('Encabezados:', rows[0]);
+    console.log('Primer producto:', rows[1]);
     
     excelData = [];
 
-    // VERSIÓN FORZADA - IGNORA ENCABEZADOS, TOMA DATOS DIRECTAMENTE
-    // Empezamos desde la fila 0 (primera fila de datos)
-    for (let i = 0; i < rows.length; i++) {
+    // Empezamos DESDE LA FILA 1 (saltamos los encabezados)
+    for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
         
-        // Verificar que la fila tenga al menos 5 columnas
-        if (!row || row.length < 5) {
-            console.log(`Fila ${i} ignorada: muy pocas columnas`);
-            continue;
-        }
+        // Verificar que la fila tenga datos
+        if (!row || row.length < 4) continue;
         
-        // EXTRAER DATOS - Columnas fijas:
+        // EXTRAER DATOS según las columnas de tu Excel:
         // Col0: Código
         // Col1: Nombre
-        // Col3: Precio
-        // Col4: Categoría
+        // Col2: Precio
+        // Col3: Departamento/Categoría
         
         let codigo = row[0] ? String(row[0]).trim() : '';
         let nombre = row[1] ? String(row[1]).trim() : '';
-        let precioTexto = row[3] ? String(row[3]).trim() : '';
-        let categoria = row[4] ? String(row[4]).trim() : 'General';
+        let precioTexto = row[2] ? String(row[2]).trim() : '';
+        let categoria = row[3] ? String(row[3]).trim() : 'General';
         
-        // Limpiar código
+        // Limpiar código (quitar .00 si existe)
         if (codigo.includes('.')) {
             codigo = codigo.split('.')[0];
         }
         
-        // Limpiar precio
+        // Limpiar precio (quitar $ y convertir a número)
         let precio = 0;
         if (precioTexto) {
             precioTexto = precioTexto.replace('$', '').replace(',', '').trim();
             precio = parseFloat(precioTexto) || 0;
         }
         
-        // Limpiar categoría
-        if (categoria === '- Sin Departamento -' || categoria === '') {
+        // Limpiar categoría (reemplazar vacíos)
+        if (!categoria || categoria === '- Sin Departamento -') {
             categoria = 'General';
         }
         
-        // VALIDACIÓN ESTRICTA
-        if (codigo && nombre && codigo.length > 3) {
+        // Solo agregar si tenemos código y nombre
+        if (codigo && nombre) {
             excelData.push({
                 codigo: codigo,
                 nombre: nombre,
                 categoria: categoria,
                 precio: precio
             });
-            console.log(`✅ Producto ${i}: ${nombre} (${codigo})`);
+            console.log(`✅ Producto ${i}: ${nombre}`);
         } else {
             console.log(`❌ Fila ${i} inválida:`, {codigo, nombre});
         }
@@ -741,7 +731,7 @@
     console.log(`📊 Total: ${excelData.length} productos válidos`);
     
     if (excelData.length === 0) {
-        alert('No se encontraron productos válidos. Revisa el diagnóstico en la consola.');
+        alert('No se encontraron productos válidos. Revisa que las columnas tengan código y nombre.');
         return;
     }
 
