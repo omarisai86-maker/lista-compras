@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sistema de Compras con Categorías</title>
+    <title>Sistema de Compras con Excel</title>
     <!-- Librerías -->
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -47,6 +47,8 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .card-title {
@@ -105,6 +107,12 @@
             font-size: 11px;
             color: #999;
             margin-top: 4px;
+        }
+
+        .item-price {
+            font-size: 12px;
+            color: #28a745;
+            font-weight: 600;
         }
 
         .item-qty {
@@ -331,17 +339,27 @@
             outline: none;
         }
 
-        .barcode-preview {
+        .product-info {
             background: #f8f9fa;
-            padding: 20px;
+            padding: 15px;
             border-radius: 12px;
-            margin: 20px 0;
-            text-align: center;
+            margin: 15px 0;
         }
 
-        #barcodePreview {
-            max-width: 100%;
-            height: auto;
+        .product-info p {
+            margin: 5px 0;
+            font-size: 16px;
+        }
+
+        .product-info .label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .product-info .value {
+            color: #1a73e8;
+            font-weight: 600;
+            margin-left: 10px;
         }
 
         .modal-buttons {
@@ -374,17 +392,6 @@
             cursor: pointer;
         }
 
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 14px;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
         .btn-success {
             background: #34a853;
             color: white;
@@ -395,41 +402,33 @@
             font-weight: 600;
             cursor: pointer;
             width: 100%;
-            margin-top: 10px;
         }
 
-        /* Lista de categorías */
-        .categoria-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .categoria-item:last-child {
-            border-bottom: none;
-        }
-
-        .categoria-nombre {
-            font-weight: 500;
-            color: #333;
-        }
-
-        .categoria-actions button {
-            background: none;
-            border: none;
-            font-size: 18px;
+        /* Excel upload */
+        .excel-upload {
+            border: 2px dashed #1a73e8;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            background: #f8f9fa;
             cursor: pointer;
-            margin: 0 5px;
+            margin-bottom: 15px;
         }
 
-        .edit-btn {
-            color: #f9a825;
+        .excel-upload:hover {
+            background: #e8f0fe;
         }
 
-        .delete-btn {
-            color: #dc3545;
+        .file-info {
+            background: #e8f0fe;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        #fileInput {
+            display: none;
         }
 
         .hidden {
@@ -439,28 +438,30 @@
 </head>
 <body>
     <div class="container">
-        <h1>🛒 Mi Lista de Compras</h1>
+        <h1>🛒 Lista de Compras</h1>
+
+        <!-- Info de productos cargados -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <span>📊 Productos en sistema</span>
+                </div>
+                <span class="badge" id="productCount">0</span>
+            </div>
+            <div id="dbInfo" style="text-align:center; color:#666; padding:10px;">
+                No hay productos cargados
+            </div>
+        </div>
 
         <!-- Lista de compras actual -->
         <div class="card">
             <div class="card-header">
                 <div class="card-title">
-                    <span>📋 Lista actual</span>
+                    <span>📋 Lista de compras</span>
                 </div>
                 <span class="badge" id="itemCount">0</span>
             </div>
             <ul id="shoppingList"></ul>
-        </div>
-
-        <!-- Productos registrados -->
-        <div class="card">
-            <div class="card-header">
-                <div class="card-title">
-                    <span>📚 Últimos productos</span>
-                </div>
-                <button class="badge" id="verCatalogoBtn" style="background:#34a853; border:none; cursor:pointer;">Ver todos</button>
-            </div>
-            <div id="productosRecientes"></div>
         </div>
     </div>
 
@@ -468,14 +469,14 @@
     <div class="fab-container">
         <button class="fab secondary" id="addBtn">+</button>
         <button class="fab" id="scanBtn">📷</button>
-        <button class="fab warning" id="categoriasBtn">🏷️</button>
+        <button class="fab warning" id="excelBtn">📊</button>
     </div>
 
     <!-- Panel de opciones -->
     <div id="optionsPanel" class="options-panel hidden">
         <button class="option-btn primary" id="scanOption">📷 Escanear código</button>
         <button class="option-btn success" id="manualOption">✏️ Nuevo producto</button>
-        <button class="option-btn warning" id="categoriasOption">🏷️ Editar categorías</button>
+        <button class="option-btn warning" id="excelOption">📊 Cargar Excel</button>
         <button class="option-btn secondary" id="closeOptions">✖ Cerrar</button>
     </div>
 
@@ -492,133 +493,61 @@
         <div class="scanner-status" id="scannerStatus">Iniciando cámara...</div>
     </div>
 
-    <!-- Modal: Nuevo producto -->
-    <div id="productoModal" class="modal hidden">
+    <!-- Modal: Cargar Excel -->
+    <div id="excelModal" class="modal hidden">
         <div class="modal-content">
-            <h3>✏️ Registrar producto</h3>
+            <h3>📊 Cargar productos desde Excel</h3>
             
-            <div class="form-group">
-                <label>Nombre del producto</label>
-                <input type="text" id="productName" placeholder="Ej: Cuaderno profesional">
+            <div class="excel-upload" id="excelUploadArea">
+                <p style="font-size: 48px; margin-bottom: 10px;">📁</p>
+                <p style="font-weight: 600;">Haz click para seleccionar archivo</p>
+                <p style="color: #666; font-size: 14px; margin-top: 10px;">Formatos: .xlsx, .xls, .csv</p>
             </div>
 
-            <div class="form-group">
-                <label>Categoría</label>
-                <select id="productCategory"></select>
+            <div id="excelPreview" class="hidden">
+                <div class="file-info" id="fileInfo"></div>
+                <div style="max-height: 200px; overflow-y: auto; border:1px solid #eee; border-radius:8px; padding:10px;" id="excelData"></div>
             </div>
-
-            <div class="form-group">
-                <label>Código de barras</label>
-                <input type="text" id="productCode" placeholder="Se genera automático">
-            </div>
-
-            <div class="form-group">
-                <label>Cantidad inicial</label>
-                <input type="number" id="productQuantity" value="1" min="1">
-            </div>
-
-            <div class="barcode-preview">
-                <svg id="barcodePreview"></svg>
-                <p style="margin-top: 10px; color: #666; font-size: 12px;">Vista previa del código</p>
-            </div>
-
-            <div class="modal-buttons">
-                <button class="btn-primary" id="saveProductBtn">Guardar</button>
-                <button class="btn-secondary" id="cancelProductBtn">Cancelar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal: Catálogo -->
-    <div id="catalogoModal" class="modal hidden">
-        <div class="modal-content">
-            <h3>📚 Catálogo completo</h3>
-            <div id="catalogoList" style="max-height: 400px; overflow-y: auto;"></div>
-            <button class="btn-secondary" id="closeCatalogoBtn" style="margin-top: 15px;">Cerrar</button>
-        </div>
-    </div>
-
-    <!-- Modal: Editor de categorías -->
-    <div id="categoriasModal" class="modal hidden">
-        <div class="modal-content">
-            <h3>🏷️ Administrar categorías</h3>
-            
-            <div style="margin-bottom: 20px;">
-                <div class="form-group">
-                    <label>Nueva categoría</label>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="text" id="nuevaCategoria" placeholder="Ej: Electrónica" style="flex: 1;">
-                        <button class="btn-success" id="agregarCategoriaBtn" style="width: auto; margin:0;">➕</button>
-                    </div>
-                </div>
-            </div>
-
-            <div id="listaCategorias" style="max-height: 300px; overflow-y: auto;"></div>
 
             <div class="modal-buttons" style="margin-top: 20px;">
-                <button class="btn-secondary" id="closeCategoriasBtn">Cerrar</button>
+                <button class="btn-primary" id="saveExcelBtn">Cargar productos</button>
+                <button class="btn-secondary" id="closeExcelBtn">Cancelar</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal: Editar categoría -->
-    <div id="editarCategoriaModal" class="modal hidden">
+    <!-- Modal: Agregar cantidad -->
+    <div id="cantidadModal" class="modal hidden">
         <div class="modal-content">
-            <h3>✏️ Editar categoría</h3>
+            <h3>➕ Agregar a la lista</h3>
+            
+            <div id="productoDetalle" class="product-info"></div>
+
             <div class="form-group">
-                <label>Nombre</label>
-                <input type="text" id="editCategoriaNombre">
+                <label>Cantidad a comprar</label>
+                <input type="number" id="cantidadInput" value="1" min="1" step="1" style="font-size: 20px; text-align: center;">
             </div>
+
             <div class="modal-buttons">
-                <button class="btn-primary" id="guardarEditCategoria">Guardar</button>
-                <button class="btn-secondary" id="cancelarEditCategoria">Cancelar</button>
+                <button class="btn-primary" id="confirmarCantidadBtn">Agregar</button>
+                <button class="btn-secondary" id="cancelarCantidadBtn">Cancelar</button>
             </div>
         </div>
     </div>
 
     <canvas id="canvas" style="display: none;"></canvas>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
 
     <script>
-        // ========== CATEGORÍAS ==========
-        let categorias = JSON.parse(localStorage.getItem('categorias')) || [
-            "Papelería",
-            "Abarrotes",
-            "Dulces",
-            "Fríos (refrescos)",
-            "Farmacia",
-            "Novedades y Regalos"
-        ];
-
         // ========== BASES DE DATOS ==========
-        let productosBD = JSON.parse(localStorage.getItem('productosBD')) || {
-            '7501055306475': {
-                nombre: 'Leche Lala 1L',
-                categoria: 'Fríos (refrescos)',
-                codigo: '7501055306475'
-            },
-            '7501000311116': {
-                nombre: 'Coca-Cola 600ml',
-                categoria: 'Fríos (refrescos)',
-                codigo: '7501000311116'
-            },
-            '7501031311309': {
-                nombre: 'Pan Bimbo',
-                categoria: 'Abarrotes',
-                codigo: '7501031311309'
-            },
-            '7891000105504': {
-                nombre: 'Nesquik',
-                categoria: 'Abarrotes',
-                codigo: '7891000105504'
-            }
-        };
-
+        let productosBD = JSON.parse(localStorage.getItem('productosBD')) || {};
         let listaCompras = JSON.parse(localStorage.getItem('listaCompras')) || [];
 
         // ========== VARIABLES GLOBALES ==========
         let scanning = false;
         let animationId = null;
-        let categoriaEditando = null;
+        let productoActual = null;
+        let excelData = [];
 
         // Elementos DOM
         const video = document.getElementById('video');
@@ -626,78 +555,31 @@
         const ctx = canvas.getContext('2d');
         const shoppingList = document.getElementById('shoppingList');
         const itemCount = document.getElementById('itemCount');
-        const productosRecientes = document.getElementById('productosRecientes');
-
-        // ========== FUNCIONES DE CATEGORÍAS ==========
-        function guardarCategorias() {
-            localStorage.setItem('categorias', JSON.stringify(categorias));
-        }
-
-        function cargarCategoriasEnSelect(selectId) {
-            const select = document.getElementById(selectId);
-            if (!select) return;
-            
-            select.innerHTML = '';
-            categorias.forEach(cat => {
-                const option = document.createElement('option');
-                option.value = cat;
-                option.textContent = cat;
-                select.appendChild(option);
-            });
-        }
-
-        function renderizarListaCategorias() {
-            const lista = document.getElementById('listaCategorias');
-            if (!lista) return;
-
-            if (categorias.length === 0) {
-                lista.innerHTML = '<p style="text-align:center; color:#999;">No hay categorías</p>';
-                return;
-            }
-
-            let html = '';
-            categorias.forEach((cat, index) => {
-                html += `
-                    <div class="categoria-item">
-                        <span class="categoria-nombre">${cat}</span>
-                        <div class="categoria-actions">
-                            <button class="edit-btn" onclick="editarCategoria(${index})">✏️</button>
-                            <button class="delete-btn" onclick="eliminarCategoria(${index})">🗑️</button>
-                        </div>
-                    </div>
-                `;
-            });
-            lista.innerHTML = html;
-        }
-
-        window.editarCategoria = function(index) {
-            categoriaEditando = index;
-            document.getElementById('editCategoriaNombre').value = categorias[index];
-            document.getElementById('editarCategoriaModal').classList.remove('hidden');
-        };
-
-        window.eliminarCategoria = function(index) {
-            if (confirm('¿Eliminar esta categoría?')) {
-                categorias.splice(index, 1);
-                guardarCategorias();
-                renderizarListaCategorias();
-                cargarCategoriasEnSelect('productCategory');
-            }
-        };
+        const productCount = document.getElementById('productCount');
+        const dbInfo = document.getElementById('dbInfo');
 
         // ========== FUNCIONES DE PERSISTENCIA ==========
         function guardarBD() {
             localStorage.setItem('productosBD', JSON.stringify(productosBD));
+            actualizarContadorProductos();
         }
 
         function guardarLista() {
             localStorage.setItem('listaCompras', JSON.stringify(listaCompras));
-            actualizarContador();
+            actualizarContadorLista();
         }
 
         // ========== FUNCIONES DE INTERFAZ ==========
-        function actualizarContador() {
+        function actualizarContadorLista() {
             itemCount.textContent = listaCompras.length;
+        }
+
+        function actualizarContadorProductos() {
+            const total = Object.keys(productosBD).length;
+            productCount.textContent = total;
+            dbInfo.innerHTML = total > 0 ? 
+                `<span style="color:#28a745;">✅ ${total} productos cargados</span>` : 
+                'No hay productos cargados';
         }
 
         function renderizarListaCompras() {
@@ -716,6 +598,7 @@
                                 <span class="item-category">${item.categoria}</span>
                             </div>
                             <div class="item-code">📋 ${item.codigo}</div>
+                            ${item.precio ? `<div class="item-price">$${item.precio}</div>` : ''}
                         </div>
                         <div>
                             <span class="item-qty">${item.cantidad}</span>
@@ -725,48 +608,8 @@
                 `;
             });
             shoppingList.innerHTML = html;
-            actualizarContador();
+            actualizarContadorLista();
         }
-
-        function renderizarProductosRecientes() {
-            const productosArray = Object.values(productosBD);
-            if (productosArray.length === 0) {
-                productosRecientes.innerHTML = '<p style="text-align:center; color:#999;">No hay productos registrados</p>';
-                return;
-            }
-
-            const recientes = productosArray.slice(-5).reverse();
-            let html = '';
-            recientes.forEach(p => {
-                html += `
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; border-bottom:1px solid #eee;">
-                        <div>
-                            <strong>${p.nombre}</strong>
-                            <span style="font-size:12px; color:#666; margin-left:8px;">${p.categoria}</span>
-                        </div>
-                        <div>
-                            <button onclick="agregarACarrito('${p.codigo}')" style="background:#1a73e8; color:white; border:none; border-radius:5px; padding:5px 10px;">➕</button>
-                        </div>
-                    </div>
-                `;
-            });
-            productosRecientes.innerHTML = html;
-        }
-
-        // ========== FUNCIONES DE PRODUCTOS ==========
-        window.agregarACarrito = function(codigo) {
-            const producto = productosBD[codigo];
-            if (producto) {
-                listaCompras.push({
-                    nombre: producto.nombre,
-                    categoria: producto.categoria,
-                    codigo: producto.codigo,
-                    cantidad: 1
-                });
-                guardarLista();
-                renderizarListaCompras();
-            }
-        };
 
         window.eliminarDeLista = function(index) {
             listaCompras.splice(index, 1);
@@ -774,38 +617,165 @@
             renderizarListaCompras();
         };
 
-        function agregarProductoABD(nombre, categoria, codigo) {
-            productosBD[codigo] = {
-                nombre: nombre,
-                categoria: categoria,
-                codigo: codigo
+        // ========== CARGA DE EXCEL ==========
+        document.getElementById('excelBtn').onclick = () => {
+            document.getElementById('optionsPanel').classList.add('hidden');
+            abrirModalExcel();
+        };
+
+        document.getElementById('excelOption').onclick = () => {
+            document.getElementById('optionsPanel').classList.add('hidden');
+            abrirModalExcel();
+        };
+
+        function abrirModalExcel() {
+            document.getElementById('excelModal').classList.remove('hidden');
+            document.getElementById('excelPreview').classList.add('hidden');
+            document.getElementById('saveExcelBtn').disabled = true;
+            excelData = [];
+        }
+
+        document.getElementById('closeExcelBtn').onclick = () => {
+            document.getElementById('excelModal').classList.add('hidden');
+        };
+
+        document.getElementById('excelUploadArea').onclick = () => {
+            document.getElementById('fileInput').click();
+        };
+
+        document.getElementById('fileInput').onchange = function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const data = new Uint8Array(event.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // Tomar la primera hoja
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                    
+                    // Procesar datos
+                    procesarExcel(rows);
+                    
+                } catch (error) {
+                    alert('Error al leer el archivo: ' + error.message);
+                }
             };
-            guardarBD();
-            renderizarProductosRecientes();
-        }
+            reader.readAsArrayBuffer(file);
+        };
 
-        // ========== GENERADOR DE CÓDIGOS ==========
-        function generarCodigoUnico() {
-            const timestamp = Date.now().toString().slice(-8);
-            let base = '750' + timestamp;
-            let suma = 0;
-            for (let i = 0; i < base.length; i++) {
-                suma += parseInt(base[i]) * (i % 2 === 0 ? 1 : 3);
+        function procesarExcel(rows) {
+            if (rows.length < 2) {
+                alert('El archivo no tiene datos suficientes');
+                return;
             }
-            const control = (10 - (suma % 10)) % 10;
-            return base + control;
+
+            // Asumir que la primera fila son encabezados
+            const headers = rows[0];
+            console.log('Encabezados:', headers);
+
+            // Mapear columnas comunes
+            const colMap = {
+                codigo: headers.findIndex(h => 
+                    h && h.toString().toLowerCase().includes('codigo') || 
+                    h && h.toString().toLowerCase().includes('code') ||
+                    h && h.toString().toLowerCase().includes('barcode')
+                ),
+                nombre: headers.findIndex(h => 
+                    h && h.toString().toLowerCase().includes('nombre') || 
+                    h && h.toString().toLowerCase().includes('name') ||
+                    h && h.toString().toLowerCase().includes('producto')
+                ),
+                categoria: headers.findIndex(h => 
+                    h && h.toString().toLowerCase().includes('categoria') || 
+                    h && h.toString().toLowerCase().includes('category')
+                ),
+                precio: headers.findIndex(h => 
+                    h && h.toString().toLowerCase().includes('precio') || 
+                    h && h.toString().toLowerCase().includes('price')
+                )
+            };
+
+            excelData = [];
+
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                if (!row || row.length === 0) continue;
+
+                const producto = {};
+                
+                if (colMap.codigo >= 0 && row[colMap.codigo]) {
+                    producto.codigo = row[colMap.codigo].toString().trim();
+                }
+                if (colMap.nombre >= 0 && row[colMap.nombre]) {
+                    producto.nombre = row[colMap.nombre].toString().trim();
+                }
+                if (colMap.categoria >= 0 && row[colMap.categoria]) {
+                    producto.categoria = row[colMap.categoria].toString().trim();
+                } else {
+                    producto.categoria = 'General';
+                }
+                if (colMap.precio >= 0 && row[colMap.precio]) {
+                    producto.precio = parseFloat(row[colMap.precio]) || 0;
+                }
+
+                if (producto.codigo && producto.nombre) {
+                    excelData.push(producto);
+                }
+            }
+
+            mostrarVistaPreviaExcel();
         }
 
-        function generarCodigoBarras(codigo) {
-            JsBarcode('#barcodePreview', codigo, {
-                format: "EAN13",
-                width: 2,
-                height: 80,
-                displayValue: true,
-                fontSize: 14,
-                margin: 10
+        function mostrarVistaPreviaExcel() {
+            if (excelData.length === 0) {
+                alert('No se encontraron productos válidos en el archivo');
+                return;
+            }
+
+            document.getElementById('fileInfo').innerHTML = 
+                `📊 ${excelData.length} productos encontrados`;
+
+            let preview = '';
+            excelData.slice(0, 10).forEach(p => {
+                preview += `
+                    <div style="padding:8px; border-bottom:1px solid #eee;">
+                        <strong>${p.nombre}</strong><br>
+                        <small>Código: ${p.codigo} | Categoría: ${p.categoria} ${p.precio ? '| $' + p.precio : ''}</small>
+                    </div>
+                `;
             });
+
+            if (excelData.length > 10) {
+                preview += `<div style="padding:8px; text-align:center; color:#666;">... y ${excelData.length - 10} más</div>`;
+            }
+
+            document.getElementById('excelData').innerHTML = preview;
+            document.getElementById('excelPreview').classList.remove('hidden');
+            document.getElementById('saveExcelBtn').disabled = false;
         }
+
+        document.getElementById('saveExcelBtn').onclick = () => {
+            let agregados = 0;
+            excelData.forEach(p => {
+                if (!productosBD[p.codigo]) {
+                    productosBD[p.codigo] = {
+                        nombre: p.nombre,
+                        categoria: p.categoria,
+                        codigo: p.codigo,
+                        precio: p.precio || 0
+                    };
+                    agregados++;
+                }
+            });
+            
+            guardarBD();
+            document.getElementById('excelModal').classList.add('hidden');
+            alert(`✅ ${agregados} productos nuevos agregados a la base de datos`);
+        };
 
         // ========== ESCÁNER ==========
         document.getElementById('scanBtn').onclick = () => {
@@ -825,7 +795,7 @@
             const scannerStatus = document.getElementById('scannerStatus');
             
             scannerContainer.classList.remove('hidden');
-            scannerStatus.textContent = 'Solicitando permisos...';
+            scannerStatus.textContent = '🔍 Iniciando cámara...';
             
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -863,6 +833,7 @@
             document.getElementById('scannerContainer').classList.add('hidden');
         }
 
+        let ultimoEscaneo = 0;
         function escanearFrame() {
             if (!scanning) return;
             
@@ -878,31 +849,15 @@
                 });
                 
                 if (code) {
-                    const codigo = code.data;
-                    document.getElementById('scannerStatus').textContent = '✅ Código: ' + codigo;
-                    
-                    const producto = productosBD[codigo];
-                    
-                    if (producto) {
-                        listaCompras.push({
-                            nombre: producto.nombre,
-                            categoria: producto.categoria,
-                            codigo: producto.codigo,
-                            cantidad: 1
-                        });
-                        guardarLista();
-                        renderizarListaCompras();
+                    const ahora = Date.now();
+                    if (ahora - ultimoEscaneo > 2000) { // Evitar múltiples escaneos
+                        ultimoEscaneo = ahora;
+                        const codigo = code.data;
+                        document.getElementById('scannerStatus').textContent = '✅ Código: ' + codigo;
                         
-                        document.getElementById('scannerStatus').textContent = '✅ Agregado: ' + producto.nombre;
+                        if (navigator.vibrate) navigator.vibrate(100);
                         
-                        setTimeout(() => {
-                            detenerScanner();
-                        }, 1500);
-                    } else {
-                        if (confirm(`Producto no encontrado (${codigo}). ¿Registrarlo?`)) {
-                            detenerScanner();
-                            abrirFormularioProducto(codigo);
-                        }
+                        procesarCodigoEscaner(codigo);
                     }
                 }
             }
@@ -910,31 +865,61 @@
             animationId = requestAnimationFrame(escanearFrame);
         }
 
-        // ========== FORMULARIO DE PRODUCTO ==========
-        function abrirFormularioProducto(codigoExistente = null) {
-            cargarCategoriasEnSelect('productCategory');
+        function procesarCodigoEscaner(codigo) {
+            const producto = productosBD[codigo];
             
-            const modal = document.getElementById('productoModal');
-            document.getElementById('productName').value = '';
-            document.getElementById('productQuantity').value = '1';
-            
-            if (codigoExistente) {
-                document.getElementById('productCode').value = codigoExistente;
-                generarCodigoBarras(codigoExistente);
+            if (producto) {
+                detenerScanner();
+                productoActual = producto;
+                mostrarModalCantidad();
             } else {
-                const nuevoCodigo = generarCodigoUnico();
-                document.getElementById('productCode').value = nuevoCodigo;
-                generarCodigoBarras(nuevoCodigo);
+                document.getElementById('scannerStatus').textContent = '❌ Producto no encontrado';
+                setTimeout(() => {
+                    if (scanning) {
+                        document.getElementById('scannerStatus').textContent = '🔍 Buscando...';
+                    }
+                }, 2000);
             }
+        }
+
+        // ========== MODAL DE CANTIDAD ==========
+        function mostrarModalCantidad() {
+            const modal = document.getElementById('cantidadModal');
+            const detalle = document.getElementById('productoDetalle');
             
+            detalle.innerHTML = `
+                <p><span class="label">Producto:</span> <span class="value">${productoActual.nombre}</span></p>
+                <p><span class="label">Categoría:</span> <span class="value">${productoActual.categoria}</span></p>
+                <p><span class="label">Código:</span> <span class="value">${productoActual.codigo}</span></p>
+                ${productoActual.precio ? `<p><span class="label">Precio:</span> <span class="value">$${productoActual.precio}</span></p>` : ''}
+            `;
+            
+            document.getElementById('cantidadInput').value = 1;
             modal.classList.remove('hidden');
         }
 
-        document.getElementById('manualOption').onclick = () => {
-            document.getElementById('optionsPanel').classList.add('hidden');
-            abrirFormularioProducto();
+        document.getElementById('confirmarCantidadBtn').onclick = () => {
+            const cantidad = parseInt(document.getElementById('cantidadInput').value) || 1;
+            
+            listaCompras.push({
+                nombre: productoActual.nombre,
+                categoria: productoActual.categoria,
+                codigo: productoActual.codigo,
+                cantidad: cantidad,
+                precio: productoActual.precio || 0
+            });
+            
+            guardarLista();
+            renderizarListaCompras();
+            
+            document.getElementById('cantidadModal').classList.add('hidden');
         };
 
+        document.getElementById('cancelarCantidadBtn').onclick = () => {
+            document.getElementById('cantidadModal').classList.add('hidden');
+        };
+
+        // ========== BOTONES PRINCIPALES ==========
         document.getElementById('addBtn').onclick = () => {
             document.getElementById('optionsPanel').classList.toggle('hidden');
         };
@@ -943,134 +928,9 @@
             document.getElementById('optionsPanel').classList.add('hidden');
         };
 
-        document.getElementById('cancelProductBtn').onclick = () => {
-            document.getElementById('productoModal').classList.add('hidden');
-        };
-
-        document.getElementById('saveProductBtn').onclick = () => {
-            const nombre = document.getElementById('productName').value.trim();
-            const categoria = document.getElementById('productCategory').value;
-            const codigo = document.getElementById('productCode').value.trim();
-            const cantidad = parseInt(document.getElementById('productQuantity').value);
-            
-            if (!nombre) {
-                alert('Ingresa el nombre del producto');
-                return;
-            }
-            
-            agregarProductoABD(nombre, categoria, codigo);
-            
-            listaCompras.push({
-                nombre: nombre,
-                categoria: categoria,
-                codigo: codigo,
-                cantidad: cantidad
-            });
-            guardarLista();
-            renderizarListaCompras();
-            
-            document.getElementById('productoModal').classList.add('hidden');
-        };
-
-        // ========== CATÁLOGO ==========
-        document.getElementById('verCatalogoBtn').onclick = () => {
-            const modal = document.getElementById('catalogoModal');
-            const catalogoList = document.getElementById('catalogoList');
-            
-            const productos = Object.values(productosBD).sort((a, b) => a.nombre.localeCompare(b.nombre));
-            
-            if (productos.length === 0) {
-                catalogoList.innerHTML = '<p style="text-align:center;">No hay productos</p>';
-            } else {
-                let html = '';
-                productos.forEach(p => {
-                    html += `
-                        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid #eee;">
-                            <div>
-                                <strong>${p.nombre}</strong>
-                                <div style="font-size:12px; color:#666;">${p.categoria}</div>
-                                <div style="font-size:11px; color:#999;">${p.codigo}</div>
-                            </div>
-                            <button onclick="agregarACarrito('${p.codigo}')" style="background:#1a73e8; color:white; border:none; border-radius:5px; padding:8px 12px;">➕</button>
-                        </div>
-                    `;
-                });
-                catalogoList.innerHTML = html;
-            }
-            
-            modal.classList.remove('hidden');
-        };
-
-        document.getElementById('closeCatalogoBtn').onclick = () => {
-            document.getElementById('catalogoModal').classList.add('hidden');
-        };
-
-        // ========== EDITOR DE CATEGORÍAS ==========
-        document.getElementById('categoriasBtn').onclick = () => {
-            document.getElementById('optionsPanel').classList.add('hidden');
-            abrirEditorCategorias();
-        };
-
-        document.getElementById('categoriasOption').onclick = () => {
-            document.getElementById('optionsPanel').classList.add('hidden');
-            abrirEditorCategorias();
-        };
-
-        function abrirEditorCategorias() {
-            renderizarListaCategorias();
-            document.getElementById('categoriasModal').classList.remove('hidden');
-        }
-
-        document.getElementById('closeCategoriasBtn').onclick = () => {
-            document.getElementById('categoriasModal').classList.add('hidden');
-        };
-
-        document.getElementById('agregarCategoriaBtn').onclick = () => {
-            const nueva = document.getElementById('nuevaCategoria').value.trim();
-            if (nueva && !categorias.includes(nueva)) {
-                categorias.push(nueva);
-                guardarCategorias();
-                renderizarListaCategorias();
-                cargarCategoriasEnSelect('productCategory');
-                document.getElementById('nuevaCategoria').value = '';
-            } else if (categorias.includes(nueva)) {
-                alert('La categoría ya existe');
-            }
-        };
-
-        // ========== EDITAR CATEGORÍA MODAL ==========
-        document.getElementById('guardarEditCategoria').onclick = () => {
-            const nuevoNombre = document.getElementById('editCategoriaNombre').value.trim();
-            if (nuevoNombre && categoriaEditando !== null) {
-                const nombreAnterior = categorias[categoriaEditando];
-                categorias[categoriaEditando] = nuevoNombre;
-                guardarCategorias();
-                
-                // Actualizar productos con esa categoría
-                Object.keys(productosBD).forEach(codigo => {
-                    if (productosBD[codigo].categoria === nombreAnterior) {
-                        productosBD[codigo].categoria = nuevoNombre;
-                    }
-                });
-                guardarBD();
-                
-                renderizarListaCategorias();
-                cargarCategoriasEnSelect('productCategory');
-                renderizarProductosRecientes();
-                document.getElementById('editarCategoriaModal').classList.add('hidden');
-                categoriaEditando = null;
-            }
-        };
-
-        document.getElementById('cancelarEditCategoria').onclick = () => {
-            document.getElementById('editarCategoriaModal').classList.add('hidden');
-            categoriaEditando = null;
-        };
-
         // ========== INICIALIZACIÓN ==========
         renderizarListaCompras();
-        renderizarProductosRecientes();
-        cargarCategoriasEnSelect('productCategory');
+        actualizarContadorProductos();
     </script>
 </body>
 </html>
