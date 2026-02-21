@@ -699,7 +699,7 @@
         </div>
     </div>
 
-    <!-- Modal: Nuevo producto manual -->
+    <!-- Modal: Nuevo producto manual / Editar producto -->
     <div id="nuevoProductoModal" class="modal hidden">
         <div class="modal-content">
             <h3>✏️ Nuevo producto</h3>
@@ -792,6 +792,7 @@
         let productoActual = null;
         let excelData = [];
         let modoBusqueda = 'nombre'; // 'nombre' o 'codigo'
+        let productoEditando = null; // Para edición
 
         // Elementos DOM
         const video = document.getElementById('video');
@@ -1029,15 +1030,18 @@
             let html = '';
             encontrados.forEach(p => {
                 html += `
-                    <div class="search-result-item" onclick="seleccionarProducto('${p.codigo}')">
-                        <div>
+                    <div class="search-result-item" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div onclick="seleccionarProducto('${p.codigo}')" style="flex: 1;">
                             <strong>${p.nombre}</strong>
                             <br>
                             <small>${p.categoria}</small>
                         </div>
-                        <div class="precios">
-                            <div class="precio-venta">💰 $${p.precioVenta ? p.precioVenta.toFixed(2) : '0.00'}</div>
-                            ${p.precioCompra ? `<div class="precio-compra">📦 $${p.precioCompra.toFixed(2)}</div>` : ''}
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="precios" style="text-align: right; margin-right: 10px;">
+                                <div class="precio-venta">💰 $${p.precioVenta ? p.precioVenta.toFixed(2) : '0.00'}</div>
+                                ${p.precioCompra ? `<div class="precio-compra">📦 $${p.precioCompra.toFixed(2)}</div>` : ''}
+                            </div>
+                            <button onclick="event.stopPropagation(); editarProducto('${p.codigo}')" style="background: #f9a825; color: white; border: none; border-radius: 5px; padding: 5px 10px; cursor: pointer;">✏️</button>
                         </div>
                     </div>
                 `;
@@ -1073,9 +1077,35 @@
             document.getElementById('nuevoPrecioCompra').value = '';
             document.getElementById('nuevoPrecioVenta').value = '';
             document.getElementById('nuevoCodigo').value = '';
+            
+            // Asegurar título correcto
+            document.querySelector('#nuevoProductoModal h3').textContent = '✏️ Nuevo producto';
+            productoEditando = null;
         };
 
-        // ========== NUEVO PRODUCTO MANUAL ==========
+        // ========== EDITAR PRODUCTO ==========
+        window.editarProducto = function(codigo) {
+            const producto = productosBD[codigo];
+            if (!producto) return;
+            
+            // Cargar datos en el modal
+            document.getElementById('nuevoNombre').value = producto.nombre;
+            document.getElementById('nuevaCategoria').value = producto.categoria;
+            document.getElementById('nuevoPrecioCompra').value = producto.precioCompra || 0;
+            document.getElementById('nuevoPrecioVenta').value = producto.precioVenta || 0;
+            document.getElementById('nuevoCodigo').value = producto.codigo;
+            
+            // Cambiar título del modal
+            document.querySelector('#nuevoProductoModal h3').textContent = '✏️ Editar producto';
+            
+            // Guardar código original para actualizar
+            productoEditando = codigo;
+            
+            document.getElementById('buscarModal').classList.add('hidden');
+            document.getElementById('nuevoProductoModal').classList.remove('hidden');
+        };
+
+        // ========== NUEVO PRODUCTO MANUAL / EDITAR ==========
         document.getElementById('guardarNuevoBtn').onclick = () => {
             const nombre = document.getElementById('nuevoNombre').value.trim();
             const categoria = document.getElementById('nuevaCategoria').value.trim() || 'General';
@@ -1088,29 +1118,68 @@
                 return;
             }
             
-            // Generar código si no se proporcionó
-            if (!codigo) {
-                codigo = generarCodigoUnico();
+            // Si estamos editando
+            if (productoEditando) {
+                const codigoOriginal = productoEditando;
+                
+                // Si cambió el código, eliminar entrada anterior
+                if (codigoOriginal !== codigo) {
+                    delete productosBD[codigoOriginal];
+                }
+                
+                // Guardar con nuevo código
+                productosBD[codigo] = {
+                    nombre: nombre,
+                    categoria: categoria,
+                    codigo: codigo,
+                    precioCompra: precioCompra,
+                    precioVenta: precioVenta
+                };
+                
+                // Actualizar productos en lista de compras que tengan este código
+                listaCompras = listaCompras.map(item => {
+                    if (item.codigo === codigoOriginal || item.codigo === codigo) {
+                        return {
+                            ...item,
+                            nombre: nombre,
+                            categoria: categoria,
+                            codigo: codigo,
+                            precioCompra: precioCompra,
+                            precioVenta: precioVenta
+                        };
+                    }
+                    return item;
+                });
+                
+                productoEditando = null;
+            } else {
+                // Generar código si no se proporcionó
+                if (!codigo) {
+                    codigo = generarCodigoUnico();
+                }
+                
+                // Guardar en BD
+                productosBD[codigo] = {
+                    nombre: nombre,
+                    categoria: categoria,
+                    codigo: codigo,
+                    precioCompra: precioCompra,
+                    precioVenta: precioVenta
+                };
             }
             
-            // Guardar en BD
-            productosBD[codigo] = {
-                nombre: nombre,
-                categoria: categoria,
-                codigo: codigo,
-                precioCompra: precioCompra,
-                precioVenta: precioVenta
-            };
             guardarBD();
+            guardarLista();
             
-            // Seleccionar para agregar a lista
-            productoActual = productosBD[codigo];
+            // Restaurar título
+            document.querySelector('#nuevoProductoModal h3').textContent = '✏️ Nuevo producto';
             document.getElementById('nuevoProductoModal').classList.add('hidden');
-            mostrarModalCantidad();
         };
 
         document.getElementById('cancelarNuevoBtn').onclick = () => {
             document.getElementById('nuevoProductoModal').classList.add('hidden');
+            productoEditando = null;
+            document.querySelector('#nuevoProductoModal h3').textContent = '✏️ Nuevo producto';
         };
 
         // ========== CARGA DE EXCEL ==========
